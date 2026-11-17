@@ -3,135 +3,60 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>1H Fib + Trendline Setup Drawer (SAST)</title>
-  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+  <title>1H Fib + Trendline Cloud Scanner (SAST)</title>
+  <script src="https://unpkg.com"></script>
   <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #131722;
-      color: #d1d4dc;
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-    }
-    header {
-      background-color: #1e222d;
-      padding: 12px 20px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      align-items: center;
-      border-bottom: 1px solid #2a2e39;
-    }
-    select, input, button {
-      background-color: #2a2e39;
-      color: #ffffff;
-      border: 1px solid #363a45;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 14px;
-    }
-    button {
-      cursor: pointer;
-      font-weight: 600;
-      transition: background 0.2s;
-    }
-    button:hover { background-color: #363a45; }
-    button.active-tool { background-color: #2962ff; border-color: #2962ff; }
-    button.save-btn { background-color: #089981; border-color: #089981; }
-    button.save-btn:hover { background-color: #067a67; }
-    button.clear-btn { background-color: #f23645; border-color: #f23645; }
-    #status-bar {
-      background-color: #181c27;
-      padding: 8px 20px;
-      font-size: 13px;
-      color: #f7931a;
-      border-bottom: 1px solid #2a2e39;
-    }
-    #main-container {
-      display: flex;
-      flex: 1;
-      overflow: hidden;
-    }
-    #chart-container {
-      flex: 3;
-      position: relative;
-    }
-    #sidebar {
-      flex: 1;
-      min-width: 320px;
-      background-color: #1e222d;
-      border-left: 1px solid #2a2e39;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      overflow-y: auto;
-    }
-    textarea {
-      width: 100%;
-      height: 260px;
-      background-color: #131722;
-      color: #00e676;
-      border: 1px solid #363a45;
-      border-radius: 4px;
-      padding: 10px;
-      font-family: monospace;
-      font-size: 12px;
-      resize: none;
-    }
-    .info-box {
-      background-color: #2a2e39;
-      padding: 10px;
-      border-radius: 4px;
-      font-size: 13px;
-      line-height: 1.5;
-    }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #131722; color: #d1d4dc; display: flex; flex-direction: column; height: 100vh; }
+    header { background: #1e222d; padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-bottom: 1px solid #2a2e39; }
+    select, input, button { background: #2a2e39; color: #fff; border: 1px solid #363a45; padding: 8px 12px; border-radius: 4px; font-size: 14px; }
+    button { cursor: pointer; font-weight: 600; }
+    button:hover { background: #363a45; }
+    button.active-tool { background: #2962ff; border-color: #2962ff; }
+    button.save-btn { background: #089981; border-color: #089981; }
+    button.clear-btn { background: #f23645; border-color: #f23645; }
+    #status-bar { background: #181c27; padding: 8px 20px; font-size: 13px; color: #f7931a; border-bottom: 1px solid #2a2e39; }
+    #main-container { display: flex; flex: 1; overflow: hidden; }
+    #chart-container { flex: 3; }
+    #sidebar { flex: 1; min-width: 300px; background: #1e222d; border-left: 1px solid #2a2e39; padding: 16px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; }
+    textarea { width: 100%; height: 240px; background: #131722; color: #00e676; border: 1px solid #363a45; border-radius: 4px; padding: 10px; font-family: monospace; font-size: 12px; resize: none; }
+    .info-box { background: #2a2e39; padding: 10px; border-radius: 4px; font-size: 13px; line-height: 1.5; }
   </style>
 </head>
 <body>
 
 <header>
-  <strong>1H Forex Scanner</strong>
-  <input type="text" id="apiKey" placeholder="Paste Twelve Data API Key" style="width: 210px;" />
-  <select id="pairSelect">
+  <strong>1H Cloud Scanner</strong>
+  <select id="pairSelect" onchange="loadChartData()">
     <option value="EUR/USD">EUR/USD (1H)</option>
     <option value="USD/JPY">USD/JPY (1H)</option>
     <option value="GBP/USD">GBP/USD (1H)</option>
   </select>
   <select id="directionSelect">
-    <option value="BUY">Direction: BUY (Long)</option>
-    <option value="SELL">Direction: SELL (Short)</option>
+    <option value="BUY">Direction: BUY</option>
+    <option value="SELL">Direction: SELL</option>
   </select>
-  <button onclick="loadChartData()">Load Chart</button>
   <button id="btnTrendline" onclick="setMode('trendline')">1. Draw Trendline</button>
   <button id="btnFib" onclick="setMode('fib')">2. Draw Fibonacci</button>
-  <button class="clear-btn" onclick="clearDrawings()">Clear Lines</button>
-  <button class="save-btn" onclick="saveSetup()">Save & Export JSON</button>
+  <button class="clear-btn" onclick="clearDrawings()">Clear</button>
+  <input type="password" id="dashPass" placeholder="Dashboard Password" style="width: 150px;" />
+  <button class="save-btn" onclick="saveToCloud()">Save to Cloud</button>
 </header>
 
-<div id="status-bar">
-  Status: Enter your Twelve Data API key and click <strong>Load Chart</strong>. (SAST Active Windows: 10:00–13:00 & 15:00–18:30)
-</div>
+<div id="status-bar">Status: Connecting to Railway backend...</div>
 
 <div id="main-container">
   <div id="chart-container"></div>
   <div id="sidebar">
     <div class="info-box">
-      <strong>Drawing Instructions:</strong><br/>
-      1. Click <b>Draw Trendline</b>, then click 2 swing lows (for BUY) or 2 swing highs (for SELL) on the chart.<br/>
-      2. Click <b>Draw Fibonacci</b>, then click the Swing Low and Swing High to plot the 50%–61.8% Golden Zone.<br/>
-      3. Click <b>Save & Export JSON</b> to update your bot configuration.
+      <strong>Workflow:</strong><br/>
+      1. Click <b>Draw Trendline</b> (2 swing points).<br/>
+      2. Click <b>Draw Fibonacci</b> (Swing Low & High).<br/>
+      3. Enter your Dashboard Password and click <b>Save to Cloud</b>. Telegram alerts are now live!
     </div>
-    <div id="levels-display" class="info-box">
-      <strong>Calculated Golden Zone:</strong><br/>
-      Waiting for Fibonacci points...
-    </div>
+    <div id="levels-display" class="info-box"><strong>Golden Zone:</strong><br/>Waiting for Fibonacci...</div>
     <div>
-      <strong>Active Bot Config (<code>setups.json</code>):</strong>
+      <strong>Active Cloud Setups:</strong>
       <textarea id="jsonOutput" readonly></textarea>
-      <button style="margin-top: 8px; width: 100%;" onclick="downloadJSON()">Download setups.json</button>
     </div>
   </div>
 </div>
@@ -145,124 +70,82 @@
     crosshair: { mode: LightweightCharts.CrosshairMode.Normal }
   });
 
-  const candleSeries = chart.addCandlestickSeries({
-    upColor: '#089981', downColor: '#f23645',
-    borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645'
-  });
+  const candleSeries = chart.addCandlestickSeries({ upColor: '#089981', downColor: '#f23645', borderVisible: false, wickUpColor: '#089981', wickDownColor: '#f23645' });
+  let trendlineSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 2 });
+  let fibLines = [], mode = null, trendPoints = [], fibPoints = [], candleData = [], allSetups = {}, twelveApiKey = "";
 
-  let trendlineSeries = chart.addLineSeries({ color: '#2962ff', lineWidth: 2, title: 'Trendline' });
-  let fibLines = [];
-  let mode = null;
-  let trendPoints = [];
-  let fibPoints = [];
-  let candleData = [];
-  let allSetups = JSON.parse(localStorage.getItem('forexSetups') || '{}');
-
-  function updateStatus(msg) {
-    document.getElementById('status-bar').innerHTML = `Status: ${msg}`;
-  }
+  function updateStatus(msg) { document.getElementById('status-bar').innerHTML = `Status: ${msg}`; }
 
   function setMode(newMode) {
     mode = newMode;
     document.getElementById('btnTrendline').classList.toggle('active-tool', mode === 'trendline');
     document.getElementById('btnFib').classList.toggle('active-tool', mode === 'fib');
-    if (mode === 'trendline') {
-      trendPoints = [];
-      updateStatus('Click Point 1 of your Trendline on the chart.');
-    } else if (mode === 'fib') {
-      fibPoints = [];
-      updateStatus('Click the Swing Low (or High) for your Fibonacci anchor.');
-    }
+    if (mode === 'trendline') { trendPoints = []; updateStatus('Click Point 1 of Trendline.'); }
+    if (mode === 'fib') { fibPoints = []; updateStatus('Click Fibonacci Anchor 1.'); }
+  }
+
+  async function initCloud() {
+    const res = await fetch('/api/config');
+    const cfg = await res.json();
+    twelveApiKey = cfg.apiKey;
+    allSetups = cfg.setups || {};
+    document.getElementById('jsonOutput').value = JSON.stringify(allSetups, null, 2);
+    loadChartData();
   }
 
   async function loadChartData() {
-    const apiKey = document.getElementById('apiKey').value.trim();
+    if (!twelveApiKey) return updateStatus('Missing TWELVE_DATA_API_KEY in Railway Variables.');
     const pair = document.getElementById('pairSelect').value;
-    if (!apiKey) return alert('Please paste your Twelve Data API key first.');
+    updateStatus(`Loading ${pair} 1H candles...`);
 
-    localStorage.setItem('twelveApiKey', apiKey);
-    updateStatus(`Loading 1H candles for ${pair}...`);
+    const url = `https://twelvedata.com{pair}&interval=1h&outputsize=120&apikey=${twelveApiKey}`;
+    const data = await (await fetch(url)).json();
+    if (data.status === 'error') return updateStatus(`API Error: ${data.message}`);
 
-    try {
-      const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=1h&outputsize=120&apikey=${encodeURIComponent(apiKey)}`;
-      const res = await fetch(url);
-      const data = await res.json();
+    const precision = pair.includes('JPY') ? 3 : 5;
+    candleSeries.applyOptions({ priceFormat: { type: 'price', precision, minMove: pair.includes('JPY') ? 0.001 : 0.00001 } });
 
-      if (!res.ok || data.status === 'error' || !Array.isArray(data.values)) {
-        updateStatus(`API Error: ${data.message || 'The API returned no candle data.'}`);
-        return;
-      }
-
-      const precision = pair.includes('JPY') ? 3 : 5;
-      const minMove = pair.includes('JPY') ? 0.001 : 0.00001;
-      candleSeries.applyOptions({ priceFormat: { type: 'price', precision, minMove } });
-
-      candleData = data.values.reverse().map(c => ({
-        time: Math.floor(new Date(c.datetime + 'Z').getTime() / 1000),
-        open: parseFloat(c.open),
-        high: parseFloat(c.high),
-        low: parseFloat(c.low),
-        close: parseFloat(c.close)
-      }));
-
-      candleSeries.setData(candleData);
-      chart.timeScale().fitContent();
-      clearDrawings(false);
-      updateStatus(`Loaded ${pair} (1H). Select a drawing tool above to mark your levels.`);
-    } catch (err) {
-      updateStatus('Failed to fetch chart data. Check your internet or API key.');
-    }
+    candleData = data.values.reverse().map(c => ({
+      time: Math.floor(new Date(c.datetime + 'Z').getTime() / 1000),
+      open: parseFloat(c.open), high: parseFloat(c.high), low: parseFloat(c.low), close: parseFloat(c.close)
+    }));
+    candleSeries.setData(candleData);
+    chart.timeScale().fitContent();
+    clearDrawings(false);
+    updateStatus(`Loaded ${pair}. Ready to draw.`);
   }
 
   chart.subscribeClick((param) => {
     if (!mode || !param.time || !param.point) return;
-    const price = candleSeries.coordinateToPrice(param.point.y);
-    if (price === null || price === undefined) return;
     const pair = document.getElementById('pairSelect').value;
     const decimals = pair.includes('JPY') ? 3 : 5;
-    const cleanPrice = parseFloat(price.toFixed(decimals));
+    const cleanPrice = parseFloat(candleSeries.coordinateToPrice(param.point.y).toFixed(decimals));
 
     if (mode === 'trendline') {
       trendPoints.push({ time: param.time, price: cleanPrice });
-      if (trendPoints.length === 1) {
-        updateStatus(`Trendline Point 1 set at ${cleanPrice}. Now click Point 2.`);
-      } else if (trendPoints.length === 2) {
+      if (trendPoints.length === 1) updateStatus(`Trendline Point 1: ${cleanPrice}. Click Point 2.`);
+      else if (trendPoints.length === 2) {
         trendPoints.sort((a, b) => a.time - b.time);
-        drawExtendedTrendline();
+        const slope = (trendPoints[1].price - trendPoints[0].price) / (trendPoints[1].time - trendPoints[0].time);
+        const futureTime = candleData[candleData.length - 1].time + (3600 * 12);
+        trendlineSeries.setData([{ time: trendPoints[0].time, value: trendPoints[0].price }, { time: futureTime, value: trendPoints[0].price + slope * (futureTime - trendPoints[0].time) }]);
         setMode(null);
-        updateStatus('Trendline drawn! Now click "2. Draw Fibonacci".');
+        updateStatus('Trendline drawn! Click "2. Draw Fibonacci".');
       }
     } else if (mode === 'fib') {
       fibPoints.push({ time: param.time, price: cleanPrice });
-      if (fibPoints.length === 1) {
-        updateStatus(`Fibonacci Anchor 1 set at ${cleanPrice}. Click Anchor 2.`);
-      } else if (fibPoints.length === 2) {
-        drawFibonacciLevels(decimals);
+      if (fibPoints.length === 1) updateStatus(`Fib Anchor 1: ${cleanPrice}. Click Anchor 2.`);
+      else if (fibPoints.length === 2) {
+        drawFib(decimals);
         setMode(null);
-        updateStatus('Fibonacci Golden Zone plotted! Click "Save & Export JSON".');
+        updateStatus('Fib Golden Zone ready! Click "Save to Cloud".');
       }
     }
   });
 
-  function drawExtendedTrendline() {
-    if (trendPoints.length < 2 || candleData.length === 0) return;
-    const p1 = trendPoints[0];
-    const p2 = trendPoints[1];
-    const slope = (p2.price - p1.price) / (p2.time - p1.time);
-    const lastCandleTime = candleData[candleData.length - 1].time;
-    const futureTime = lastCandleTime + (3600 * 12); // Project 12 hours forward
-
-    const lineData = [
-      { time: p1.time, value: p1.price },
-      { time: futureTime, value: p1.price + slope * (futureTime - p1.time) }
-    ];
-    trendlineSeries.setData(lineData);
-  }
-
-  function drawFibonacciLevels(decimals) {
-    fibLines.forEach(line => candleSeries.removePriceLine(line));
+  function drawFib(decimals) {
+    fibLines.forEach(l => candleSeries.removePriceLine(l));
     fibLines = [];
-
     const high = Math.max(fibPoints[0].price, fibPoints[1].price);
     const low = Math.min(fibPoints[0].price, fibPoints[1].price);
     const diff = high - low;
@@ -272,75 +155,38 @@
     const fib618 = dir === 'BUY' ? high - (diff * 0.618) : low + (diff * 0.618);
     const fib786 = dir === 'BUY' ? high - (diff * 0.786) : low + (diff * 0.786);
 
-    const levels = [
+    [
       { price: high, title: 'Swing High', color: '#787b86' },
       { price: fib50, title: '50.0% Fib', color: '#ff9800' },
       { price: fib618, title: '61.8% Golden', color: '#00e676' },
       { price: fib786, title: '78.6% Stop', color: '#f23645' },
       { price: low, title: 'Swing Low', color: '#787b86' }
-    ];
-    levels.forEach(lvl => {
-      fibLines.push(candleSeries.createPriceLine({
-        price: parseFloat(lvl.price.toFixed(decimals)),
-        color: lvl.color,
-        lineWidth: 2,
-        lineStyle: LightweightCharts.LineStyle.Dashed,
-        axisLabelVisible: true,
-        title: lvl.title
-      }));
+    ].forEach(lvl => {
+      fibLines.push(candleSeries.createPriceLine({ price: parseFloat(lvl.price.toFixed(decimals)), color: lvl.color, lineWidth: 2, lineStyle: LightweightCharts.LineStyle.Dashed, axisLabelVisible: true, title: lvl.title }));
     });
-  document.getElementById('levels-display').innerHTML = `<strong>Calculated Golden Zone (${dir}):</strong><br/> 50.0% Entry Top: <b>${fib50.toFixed(decimals)}</b><br/> 61.8% Entry Bottom: <b>${fib618.toFixed(decimals)}</b><br/> 78.6% Stop-Loss: <b>${fib786.toFixed(decimals)}</b>`;
-}
-function clearDrawings(resetStatus = true) {
-  trendPoints = [];
-  fibPoints = [];
-  trendlineSeries.setData([]);
-  fibLines.forEach(line => candleSeries.removePriceLine(line));
-  fibLines = [];
-  document.getElementById('levels-display').innerHTML = 'Calculated Golden Zone: Cleared.';
-  if (resetStatus) updateStatus('Drawings cleared.');
-}
 
-function saveSetup() {
-  if (trendPoints.length < 2 || fibPoints.length < 2) {
-    return alert('Please draw both a 2-point Trendline and a 2-point Fibonacci zone first.');
+    document.getElementById('levels-display').innerHTML = `<strong>Golden Zone (${dir}):</strong><br/>50.0%: <b>${fib50.toFixed(decimals)}</b><br/>61.8%: <b>${fib618.toFixed(decimals)}</b><br/>78.6% SL: <b>${fib786.toFixed(decimals)}</b>`;
   }
 
-  const pair = document.getElementById('pairSelect').value;
-  const direction = document.getElementById('directionSelect').value;
-  const high = Math.max(fibPoints[0].price, fibPoints[1].price);
-  const low = Math.min(fibPoints[0].price, fibPoints[1].price);
-  allSetups[pair] = {
-    active: true,
-    direction: direction,
-    fib_high: high,
-    fib_low: low,
-    trendline_p1: { timestamp: trendPoints[0].time, price: trendPoints[0].price },
-    trendline_p2: { timestamp: trendPoints[1].time, price: trendPoints[1].price }
-  };
-  localStorage.setItem('forexSetups', JSON.stringify(allSetups));
-  document.getElementById('jsonOutput').value = JSON.stringify(allSetups, null, 2);
-  updateStatus(`Saved ${pair} setup! Switch pairs to add more, or download setups.json.`);
-}
+  function clearDrawings(reset = true) {
+    trendPoints = []; fibPoints = []; trendlineSeries.setData([]);
+    fibLines.forEach(l => candleSeries.removePriceLine(l)); fibLines = [];
+    if (reset) updateStatus('Cleared.');
+  }
 
-function downloadJSON() {
-  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allSetups, null, 2));
-  const dlAnchor = document.createElement('a');
-  dlAnchor.setAttribute("href", dataStr);
-  dlAnchor.setAttribute("download", "setups.json");
-  dlAnchor.click();
-}
+  async function saveToCloud() {
+    if (trendPoints.length < 2 || fibPoints.length < 2) return alert('Draw both Trendline and Fibonacci first.');
+    const pair = document.getElementById('pairSelect').value;
+    const pass = document.getElementById('dashPass').value;
 
-// Restore saved API key and setups on page load
-window.onload = () => {
-  const savedKey = localStorage.getItem('twelveApiKey');
-  if (savedKey) document.getElementById('apiKey').value = savedKey;
-  document.getElementById('jsonOutput').value = JSON.stringify(allSetups, null, 2);
-};
+    allSetups[pair] = {
+      active: true,
+      direction: document.getElementById('directionSelect').value,
+      fib_high: Math.max(fibPoints[0].price, fibPoints[1].price),
+      fib_low: Math.min(fibPoints[0].price, fibPoints[1].price),
+      trendline_p1: { timestamp: trendPoints[0].time, price: trendPoints[0].price },
+      trendline_p2: { timestamp: trendPoints[1].time, price: trendPoints[1].price }
+    };
 
-window.addEventListener('resize', () => {
-  chart.resize(chartContainer.clientWidth, chartContainer.clientHeight);
-});
-</script>
-</body>
-</html>
+    const res = await fetch('/api/setups', {
+      method: 'POST',

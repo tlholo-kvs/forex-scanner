@@ -1,0 +1,16 @@
+{
+  "EUR/USD": {
+    "active": true,
+    "direction": "BUY",
+    "fib_high": 1.11027,
+    "fib_low": 1.0984,
+    "trendline_p1": {
+      "timestamp": 1794517200,
+      "price": 1.11023
+    },
+    "trendline_p2": {
+      "timestamp": 1794934800,
+      "price": 1.10134
+    }
+  }
+}

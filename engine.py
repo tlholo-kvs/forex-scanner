@@ -1,47 +1,61 @@
 import json
+import os
 import time
+from pathlib import Path
 import requests
 from datetime import datetime, timezone, timedelta
 
 # ================= CONFIGURATION =================
-TWELVE_DATA_API_KEY = "YOUR_TWELVE_DATA_API_KEY"
-TELEGRAM_BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"
-TELEGRAM_CHAT_ID = "YOUR_TELEGRAM_CHAT_ID"
-SETUPS_FILE = "setups.json"
+TWELVE_DATA_API_KEY = os.environ.get("TWELVE_DATA_API_KEY", "")
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+SETUPS_FILE = Path(__file__).with_name("setups.json")
 
 # Confluence buffer in pips (how close the trendline must be to the 50%-61.8% Fib zone)
 CONFLUENCE_BUFFER_PIPS = 15
 # =================================================
 
 SAST = timezone(timedelta(hours=2))
+last_processed_candles = {}
 
 def send_telegram_message(text):
-    url = f"https://telegram.org{TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": TELEGRAM_CHAT_ID,
         "text": text,
         "parse_mode": "Markdown"
     }
     try:
-        requests.post(url, json=payload, timeout=10)
-    except Exception as e:
+        response = requests.post(url, json=payload, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
         print(f"Telegram error: {e}")
 
 def is_sast_active_window(dt_sast):
     """Checks if current SAST time is inside 10:00-13:00 or 15:00-18:30."""
-    hour = dt_sast.hour
-    minute = dt_sast.minute
-    morning_session = 10 <= hour <= 13
-    ny_overlap = (15 <= hour <= 17) or (hour == 18 and minute <= 35)
-    return morning_session or ny_overlap
-
-def fetch_latest_closed_candle(pair):
-    """Fetches the most recently closed 1H candle from Twelve Data."""
-    url = (
-        f"https://twelvedata.com"
-        f"?symbol={pair}&interval=1h&outputsize=2&apikey={TWELVE_DATA_API_KEY}"
+    current_time = dt_sast.time()
+    return (
+        datetime.strptime("10:00", "%H:%M").time()
+        <= current_time
+        <= datetime.strptime("13:00", "%H:%M").time()
+        or datetime.strptime("15:00", "%H:%M").time()
+        <= current_time
+        <= datetime.strptime("18:30", "%H:%M").time()
     )
-    res = requests.get(url, timeout=10).json()
+
+def fetch_latest_closed_candle(pair, interval):
+    """Fetches the most recently closed candle for the selected interval."""
+    url = (
+        f"https://api.twelvedata.com/time_series"
+        f"?symbol={pair}&interval={interval}&outputsize=2&apikey={TWELVE_DATA_API_KEY}"
+    )
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        res = response.json()
+    except (requests.RequestException, ValueError) as e:
+        print(f"API issue for {pair}: {e}")
+        return None
     if "values" not in res or len(res["values"]) < 2:
         print(f"API issue for {pair}: {res}")
         return None
@@ -112,7 +126,7 @@ def evaluate_setup(pair, setup, candle):
         rr_ratio = round(tp_pips / sl_pips, 1) if sl_pips > 0 else 0
 
         msg = (
-            f"🚨 *1H CONFLUENCE SIGNAL: {pair} ({direction})*\n"
+            f"🚨 *{setup.get('timeframe', '1h')} CONFLUENCE SIGNAL: {pair} ({direction})*\n"
             f"🕒 *Candle Close:* {candle['datetime_sast']}\n"
             f"📐 *Setup:* 50%–61.8% Fib + Trendline Rejection\n\n"
             f"🎯 *Entry:* `{candle['close']:.{decimals}f}`\n"
@@ -133,7 +147,7 @@ def run_scan():
         return
 
     try:
-        with open(SETUPS_FILE, "r") as f:
+        with SETUPS_FILE.open("r", encoding="utf-8") as f:
             setups = json.load(f)
     except FileNotFoundError:
         print("setups.json not found. Export it from your laptop webpage first.")
@@ -142,15 +156,21 @@ def run_scan():
     for pair, setup in setups.items():
         if not setup.get("active"):
             continue
-        candle = fetch_latest_closed_candle(pair)
-        if candle:
-            evaluate_setup(pair, setup, candle)
+        interval = setup.get("timeframe", "1h")
+        candle = fetch_latest_closed_candle(pair, interval)
+        if not candle:
+            continue
+        candle_key = (pair, interval)
+        if last_processed_candles.get(candle_key) == candle["timestamp"]:
+            continue
+        last_processed_candles[candle_key] = candle["timestamp"]
+        evaluate_setup(pair, setup, candle)
 
 if __name__ == "__main__":
-    # Runs continuously and triggers 15 seconds after every hour close
+    # Runs continuously and checks after every possible 15-minute candle close.
     while True:
         now = datetime.now(SAST)
-        if now.minute == 0 and now.second >= 15:
+        if now.minute % 15 == 0 and now.second >= 15:
             run_scan()
             time.sleep(65)  # Prevent double-triggering in the same minute
         time.sleep(10)
