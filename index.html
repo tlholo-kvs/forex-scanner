@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>1H Fib + Trendline Cloud Scanner (SAST)</title>
-  <script src="https://unpkg.com"></script>
+  <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
   <style>
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #131722; color: #d1d4dc; display: flex; flex-direction: column; height: 100vh; }
     header { background: #1e222d; padding: 12px 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; border-bottom: 1px solid #2a2e39; }
@@ -98,7 +98,7 @@
     const pair = document.getElementById('pairSelect').value;
     updateStatus(`Loading ${pair} 1H candles...`);
 
-    const url = `https://twelvedata.com{pair}&interval=1h&outputsize=120&apikey=${twelveApiKey}`;
+    const url = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(pair)}&interval=1h&outputsize=120&apikey=${encodeURIComponent(twelveApiKey)}`;
     const data = await (await fetch(url)).json();
     if (data.status === 'error') return updateStatus(`API Error: ${data.message}`);
 
