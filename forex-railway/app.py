@@ -2,11 +2,25 @@ import os
 import json
 import time
 import threading
+from pathlib import Path
 import requests
-from flask import Flask, request, jsonify, send_from_directory
+import importlib
 from datetime import datetime, timezone, timedelta
 
+try:
+    flask = importlib.import_module("flask")
+except ModuleNotFoundError as exc:
+    raise RuntimeError(
+        "Flask is required to run this application. Install it with: pip install Flask"
+    ) from exc
+
+Flask = flask.Flask
+request = flask.request
+jsonify = flask.jsonify
+send_from_directory = flask.send_from_directory
+
 app = Flask(__name__)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Keys loaded securely from Railway Environment Variables
 TWELVE_DATA_API_KEY = os.environ.get("TWELVE_DATA_API_KEY", "")
@@ -14,7 +28,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
 
-SETUPS_FILE = "setups.json"
+SETUPS_FILE = PROJECT_ROOT / "setups.json"
 CONFLUENCE_BUFFER_PIPS = 15
 SAST = timezone(timedelta(hours=2))
 last_processed_candles = {}
@@ -22,18 +36,18 @@ last_processed_candles = {}
 def load_setups():
     if not os.path.exists(SETUPS_FILE):
         return {}
-    with open(SETUPS_FILE, "r") as f:
+    with SETUPS_FILE.open("r", encoding="utf-8") as f:
         return json.load(f)
 
 def save_setups(data):
-    with open(SETUPS_FILE, "w") as f:
+    with SETUPS_FILE.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
 
 # ================= WEB ROUTES =================
 
 @app.route("/")
 def serve_index():
-    return send_from_directory(".", "index.html")
+    return send_from_directory(PROJECT_ROOT, "index.html")
 
 @app.route("/api/config", methods=["GET"])
 def get_config():
