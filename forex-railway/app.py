@@ -12,11 +12,12 @@ app = Flask(__name__)
 TWELVE_DATA_API_KEY = os.environ.get("TWELVE_DATA_API_KEY", "")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
-DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "admin123")
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "")
 
 SETUPS_FILE = "setups.json"
 CONFLUENCE_BUFFER_PIPS = 15
 SAST = timezone(timedelta(hours=2))
+last_processed_candles = {}
 
 def load_setups():
     if not os.path.exists(SETUPS_FILE):
@@ -54,28 +55,41 @@ def update_setups():
 
 def send_telegram_message(text):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("Telegram not configured: set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID.")
         return
-    url = f"https://telegram.org{TELEGRAM_BOT_TOKEN}/sendMessage"
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_CHAT_ID, "text": text, "parse_mode": "Markdown"}
     try:
-        requests.post(url, json=payload, timeout=10)
-    except Exception as e:
+        response = requests.post(url, json=payload, timeout=10)
+        response.raise_for_status()
+    except requests.RequestException as e:
         print(f"Telegram error: {e}")
 
 def is_sast_active_window(dt_sast):
-    hour = dt_sast.hour
-    minute = dt_sast.minute
-    morning_session = 10 <= hour <= 13
-    ny_overlap = (15 <= hour <= 17) or (hour == 18 and minute <= 35)
-    return morning_session or ny_overlap
-
-def fetch_latest_closed_candle(pair):
-    url = (
-        f"https://twelvedata.com"
-        f"?symbol={pair}&interval=1h&outputsize=2&apikey={TWELVE_DATA_API_KEY}"
+    current_time = dt_sast.time()
+    return (
+        datetime.strptime("10:00", "%H:%M").time()
+        <= current_time
+        <= datetime.strptime("13:00", "%H:%M").time()
+        or datetime.strptime("15:00", "%H:%M").time()
+        <= current_time
+        <= datetime.strptime("18:30", "%H:%M").time()
     )
-    res = requests.get(url, timeout=10).json()
+
+def fetch_latest_closed_candle(pair, interval):
+    url = (
+        f"https://api.twelvedata.com/time_series"
+        f"?symbol={pair}&interval={interval}&outputsize=2&apikey={TWELVE_DATA_API_KEY}"
+    )
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        res = response.json()
+    except (requests.RequestException, ValueError) as e:
+        print(f"API issue for {pair} ({interval}): {e}")
+        return None
     if "values" not in res or len(res["values"]) < 2:
+        print(f"API issue for {pair} ({interval}): {res}")
         return None
 
     closed = res["values"][1]
@@ -137,7 +151,7 @@ def evaluate_setup(pair, setup, candle):
         rr_ratio = round(tp_pips / sl_pips, 1) if sl_pips > 0 else 0
 
         msg = (
-            f"🚨 *1H CONFLUENCE SIGNAL: {pair} ({direction})*\n"
+            f"🚨 *{setup.get('timeframe', '1h')} CONFLUENCE SIGNAL: {pair} ({direction})*\n"
             f"🕒 *Candle Close:* {candle['datetime_sast']}\n"
             f"📐 *Setup:* 50%–61.8% Fib + Trendline Rejection\n\n"
             f"🎯 *Entry:* `{candle['close']:.{decimals}f}`\n"
@@ -155,9 +169,15 @@ def background_scanner():
                 setups = load_setups()
                 for pair, setup in setups.items():
                     if setup.get("active"):
-                        candle = fetch_latest_closed_candle(pair)
-                        if candle:
-                            evaluate_setup(pair, setup, candle)
+                        interval = setup.get("timeframe", "1h")
+                        candle = fetch_latest_closed_candle(pair, interval)
+                        if not candle:
+                            continue
+                        candle_key = (pair, interval)
+                        if last_processed_candles.get(candle_key) == candle["timestamp"]:
+                            continue
+                        last_processed_candles[candle_key] = candle["timestamp"]
+                        evaluate_setup(pair, setup, candle)
             time.sleep(65)
         time.sleep(10)
 
